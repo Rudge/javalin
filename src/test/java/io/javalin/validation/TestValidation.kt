@@ -11,7 +11,9 @@ import io.javalin.json.JavalinJson
 import io.javalin.misc.SerializeableObject
 import io.javalin.util.TestUtil
 import io.javalin.validation.JavalinValidation.validate
-import org.hamcrest.CoreMatchers.*
+import org.eclipse.jetty.http.HttpStatus
+import org.hamcrest.CoreMatchers.`is`
+import org.hamcrest.CoreMatchers.instanceOf
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Test
 import java.time.Instant
@@ -132,6 +134,38 @@ class TestValidation {
         assertThat(http.post("/json").body("not-json").asString().body, `is`("Couldn't deserialize body to SerializeableObject"))
         assertThat(http.post("/json").body(invalidJson).asString().body, `is`("Request body as SerializeableObject invalid - value1 must be 'Bananas'"))
         assertThat(http.post("/json").body(validJson).asString().body, `is`("Bananas"))
+    }
+
+    @Test
+    fun `test use custom exception`() = TestUtil.test { app, http ->
+        app.get("/") { ctx ->
+            val myString = ctx.validatedQueryParam("my-qp")
+                    .notNullOrEmpty()
+                    .getOrThrow(IllegalArgumentException())
+        }
+        app.exception(java.lang.IllegalArgumentException::class.java) { e, ctx ->
+            ctx.status(HttpStatus.EXPECTATION_FAILED_417)
+            ctx.result("Error Expect!")
+
+        }
+        assertThat(http.get("/").body, `is`("Error Expect!"))
+        assertThat(http.get("/").status, `is`(HttpStatus.EXPECTATION_FAILED_417))
+    }
+
+    @Test
+    fun `test use custom exception with success`() = TestUtil.test { app, http ->
+        app.get("/") { ctx ->
+            val myString = ctx.validatedQueryParam("my-qp")
+                    .notNullOrEmpty()
+                    .getOrThrow(IllegalArgumentException())
+        }
+        app.exception(java.lang.IllegalArgumentException::class.java) { e, ctx ->
+            ctx.status(HttpStatus.EXPECTATION_FAILED_417)
+            ctx.result("Error Expect!")
+
+        }
+        assertThat(http.get("/?my-qp=my-qp").body, `is`(""))
+        assertThat(http.get("/?my-qp=my-qp").status, `is`(HttpStatus.OK_200))
     }
 
 }

@@ -23,8 +23,8 @@ class Validator(val value: String?, private val messagePrefix: String = "Value")
 
     fun notNullOrEmpty() = this // can be called for readability, but presence is asserted in constructor
 
-    fun getOrThrow(): String {
-        if (value == null || value.isEmpty()) throw BadRequestResponse("$messagePrefix cannot be null or empty")
+    fun getOrThrow(ex: Throwable = BadRequestResponse("$messagePrefix cannot be null or empty")): String {
+        if (value == null || value.isEmpty()) throw ex
         return validate(rules, value)
     }
 
@@ -61,4 +61,3 @@ class TypedValidator<T>(val value: T, private val messagePrefix: String = "Value
 
 // find first invalid rule and throw, else return validated value
 private fun <T> validate(rules: Set<Rule<T>>, value: T) = rules.find { !it.test.invoke(value) }?.let { throw BadRequestResponse(it.invalidMessage) } ?: value
-

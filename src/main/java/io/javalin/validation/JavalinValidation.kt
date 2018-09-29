@@ -25,5 +25,5 @@ object JavalinValidation {
 
     @JvmStatic
     @JvmOverloads
-    fun validate(value: String?, messagePrefix: String = "Value") = Validator(value, messagePrefix)
+    fun validate(value: String?, messagePrefix: String = "Value", ex: Throwable? = null) = Validator(value, messagePrefix, ex)
 }

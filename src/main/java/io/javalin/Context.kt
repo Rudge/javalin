@@ -539,20 +539,20 @@ open class Context(private val servletRequest: HttpServletRequest, private val s
      * Throws [BadRequestResponse] if validation fails
      */
     @JvmOverloads
-    fun validatedFormParam(key: String, default: String? = null) = Validator(formParam(key, default), "Form parameter '$key' with value '${formParam(key, default)}'")
+    fun validatedFormParam(key: String, default: String? = null, ex: Throwable? = null) = Validator(formParam(key, default), "Form parameter '$key' with value '${formParam(key, default)}'", ex)
 
     /**
      * Creates a [Validator] for the pathParam() value, with the prefix "Path parameter '$key' with value '$value'"
      * Throws [BadRequestResponse] if validation fails
      */
-    fun validatedPathParam(key: String) = Validator(pathParam(key), "Path parameter '$key' with value '${pathParam(key)}'")
+    fun validatedPathParam(key: String, ex: Throwable? = null) = Validator(pathParam(key), "Path parameter '$key' with value '${pathParam(key)}'", ex)
 
     /**
      * Creates a [Validator] for the queryParam() value, with the prefix "Query parameter '$key' with value '$value'"
      * Throws [BadRequestResponse] if validation fails
      */
     @JvmOverloads
-    fun validatedQueryParam(key: String, default: String? = null) = Validator(queryParam(key, default), "Query parameter '$key' with value '${queryParam(key, default)}'")
+    fun validatedQueryParam(key: String, default: String? = null, ex: Throwable? = null) = Validator(queryParam(key, default), "Query parameter '$key' with value '${queryParam(key, default)}'", ex)
 
     /**
      * Creates a [TypedValidator] for the body() value, with the prefix "Request body as $clazz"
@@ -564,8 +564,8 @@ open class Context(private val servletRequest: HttpServletRequest, private val s
      * Creates a [TypedValidator] for the body() value, with the prefix "Request body as $clazz"
      * Throws [BadRequestResponse] if validation fails
      */
-    fun <T> validatedBodyAsClass(clazz: Class<T>) = try {
-        TypedValidator(JavalinJson.fromJson(body(), clazz), "Request body as ${clazz.simpleName}")
+    fun <T> validatedBodyAsClass(clazz: Class<T>, ex: Throwable? = null) = try {
+        TypedValidator(JavalinJson.fromJson(body(), clazz), "Request body as ${clazz.simpleName}", ex)
     } catch (e: Exception) {
         throw BadRequestResponse("Couldn't deserialize body to ${clazz.simpleName}")
     }

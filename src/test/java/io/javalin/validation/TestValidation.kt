@@ -139,29 +139,77 @@ class TestValidation {
     @Test
     fun `test use custom exception`() = TestUtil.test { app, http ->
         app.get("/") { ctx ->
-            val myString = ctx.validatedQueryParam("my-qp")
+            val myString = ctx.validatedQueryParam("my-qp", ex = IllegalArgumentException())
                     .notNullOrEmpty()
-                    .getOrThrow(IllegalArgumentException())
+                    .getOrThrow()
         }
         app.exception(java.lang.IllegalArgumentException::class.java) { e, ctx ->
             ctx.status(HttpStatus.EXPECTATION_FAILED_417)
-            ctx.result("Error Expect!")
+            ctx.result("Error Expected!")
 
         }
-        assertThat(http.get("/").body, `is`("Error Expect!"))
+        assertThat(http.get("/").body, `is`("Error Expected!"))
         assertThat(http.get("/").status, `is`(HttpStatus.EXPECTATION_FAILED_417))
     }
 
     @Test
-    fun `test use custom exception with success`() = TestUtil.test { app, http ->
+    fun `test use custom exception in convert type`() = TestUtil.test { app, http ->
         app.get("/") { ctx ->
-            val myString = ctx.validatedQueryParam("my-qp")
-                    .notNullOrEmpty()
-                    .getOrThrow(IllegalArgumentException())
+            val myString = ctx.validatedQueryParam("my-qp", ex = IllegalArgumentException()).asBoolean()
+                    .getOrThrow()
         }
         app.exception(java.lang.IllegalArgumentException::class.java) { e, ctx ->
             ctx.status(HttpStatus.EXPECTATION_FAILED_417)
-            ctx.result("Error Expect!")
+            ctx.result("Error Expected!")
+
+        }
+        assertThat(http.get("/").body, `is`("Error Expected!"))
+        assertThat(http.get("/").status, `is`(HttpStatus.EXPECTATION_FAILED_417))
+    }
+
+    @Test
+    fun `test use custom exception in check expression`() = TestUtil.test { app, http ->
+        app.get("/") { ctx ->
+            val myString = ctx.validatedQueryParam("my-qp", ex = IllegalArgumentException())
+                    .check({ it.length > 5 }, "Length must be more than five")
+                    .getOrThrow()
+        }
+        app.exception(java.lang.IllegalArgumentException::class.java) { e, ctx ->
+            ctx.status(HttpStatus.EXPECTATION_FAILED_417)
+            ctx.result("Error Expected!")
+
+        }
+        assertThat(http.get("/").body, `is`("Error Expected!"))
+        assertThat(http.get("/").status, `is`(HttpStatus.EXPECTATION_FAILED_417))
+    }
+
+    @Test
+    fun `test use custom exception in matches`() = TestUtil.test { app, http ->
+        app.get("/") { ctx ->
+            val myLong = ctx.validatedQueryParam("my-qp", ex = IllegalArgumentException())
+                    .matches("[0-9]")
+                    .getOrThrow()
+            ctx.result(myLong.toString())
+        }
+        app.exception(java.lang.IllegalArgumentException::class.java) { e, ctx ->
+            ctx.status(HttpStatus.EXPECTATION_FAILED_417)
+            ctx.result("Error Expected!")
+
+        }
+        assertThat(http.get("/").body, `is`("Error Expected!"))
+        assertThat(http.get("/").status, `is`(HttpStatus.EXPECTATION_FAILED_417))
+    }
+
+    @Test
+    fun `test use custom exception with success response`() = TestUtil.test { app, http ->
+        app.get("/") { ctx ->
+            val myString = ctx.validatedQueryParam("my-qp", ex = IllegalArgumentException())
+                    .notNullOrEmpty()
+                    .getOrThrow()
+        }
+        app.exception(java.lang.IllegalArgumentException::class.java) { e, ctx ->
+            ctx.status(HttpStatus.EXPECTATION_FAILED_417)
+            ctx.result("Error Expected!")
 
         }
         assertThat(http.get("/?my-qp=my-qp").body, `is`(""))

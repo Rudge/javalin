@@ -10,7 +10,7 @@ import io.javalin.BadRequestResponse
 
 internal data class Rule<T>(val test: (T) -> Boolean, val invalidMessage: String)
 
-class Validator(val value: String?, private val messagePrefix: String = "Value") {
+class Validator(val value: String?, private val messagePrefix: String = "Value", private val ex: Throwable?) {
 
     private val rules = mutableSetOf<Rule<String>>()
 
@@ -23,19 +23,20 @@ class Validator(val value: String?, private val messagePrefix: String = "Value")
 
     fun notNullOrEmpty() = this // can be called for readability, but presence is asserted in constructor
 
-    fun getOrThrow(ex: Throwable = BadRequestResponse("$messagePrefix cannot be null or empty")): String {
-        if (value == null || value.isEmpty()) throw ex
-        return validate(rules, value)
+    fun getOrThrow(): String {
+        if (value == null || value.isEmpty())
+            if (ex != null) throw ex else throw BadRequestResponse("$messagePrefix cannot be null or empty")
+        return validate(rules, value, ex)
     }
 
     // Convert to typed validator
 
-    fun asBoolean() = TypedValidator(convertToType(Boolean::class.java, getOrThrow()), messagePrefix)
-    fun asDouble() = TypedValidator(convertToType(Double::class.java, getOrThrow()), messagePrefix)
-    fun asFloat() = TypedValidator(convertToType(Float::class.java, getOrThrow()), messagePrefix)
-    fun asInt() = TypedValidator(convertToType(Int::class.java, getOrThrow()), messagePrefix)
-    fun asLong() = TypedValidator(convertToType(Long::class.java, getOrThrow()), messagePrefix)
-    fun <T> asClass(clazz: Class<T>) = TypedValidator(convertToType(clazz, getOrThrow()), messagePrefix)
+    fun asBoolean() = TypedValidator(convertToType(Boolean::class.java, getOrThrow()), messagePrefix, ex)
+    fun asDouble() = TypedValidator(convertToType(Double::class.java, getOrThrow()), messagePrefix, ex)
+    fun asFloat() = TypedValidator(convertToType(Float::class.java, getOrThrow()), messagePrefix, ex)
+    fun asInt() = TypedValidator(convertToType(Int::class.java, getOrThrow()), messagePrefix, ex)
+    fun asLong() = TypedValidator(convertToType(Long::class.java, getOrThrow()), messagePrefix, ex)
+    fun <T> asClass(clazz: Class<T>) = TypedValidator(convertToType(clazz, getOrThrow()), messagePrefix, ex)
     inline fun <reified T : Any> asClass() = asClass(T::class.java)
 
     private fun <T> convertToType(clazz: Class<T>, value: String) = try {
@@ -46,7 +47,7 @@ class Validator(val value: String?, private val messagePrefix: String = "Value")
 
 }
 
-class TypedValidator<T>(val value: T, private val messagePrefix: String = "Value") {
+class TypedValidator<T>(val value: T, private val messagePrefix: String = "Value", private val ex: Throwable?) {
 
     private val rules = mutableSetOf<Rule<T>>()
 
@@ -55,9 +56,9 @@ class TypedValidator<T>(val value: T, private val messagePrefix: String = "Value
         return this;
     }
 
-    fun getOrThrow() = validate(rules, value)
-
+    fun getOrThrow() = validate(rules, value, ex)
 }
 
 // find first invalid rule and throw, else return validated value
-private fun <T> validate(rules: Set<Rule<T>>, value: T) = rules.find { !it.test.invoke(value) }?.let { throw BadRequestResponse(it.invalidMessage) } ?: value
+private fun <T> validate(rules: Set<Rule<T>>, value: T, ex: Throwable?) = rules.find { !it.test.invoke(value) }?.let { if (ex != null) throw ex else throw BadRequestResponse(it.invalidMessage) }
+        ?: value
